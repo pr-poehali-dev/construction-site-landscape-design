@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 interface Product {
@@ -24,11 +27,23 @@ interface CartItem extends Product {
 }
 
 const Index = () => {
+  const { toast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  
+  const [orderForm, setOrderForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    comment: ''
+  });
   
   const [area, setArea] = useState([100]);
   const [buildingType, setBuildingType] = useState('house');
@@ -284,7 +299,14 @@ const Index = () => {
                           <span>Итого:</span>
                           <span className="text-accent">{getTotalPrice().toLocaleString('ru-RU')} ₽</span>
                         </div>
-                        <Button className="w-full bg-accent hover:bg-accent/90" size="lg" onClick={() => { setCartOpen(false); scrollToSection('contacts'); }}>
+                        <Button 
+                          className="w-full bg-accent hover:bg-accent/90" 
+                          size="lg" 
+                          onClick={() => { 
+                            setCartOpen(false); 
+                            setCheckoutOpen(true);
+                          }}
+                        >
                           Оформить заказ
                         </Button>
                       </div>
@@ -1024,6 +1046,203 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Оформление заказа</DialogTitle>
+            <DialogDescription>
+              Заполните форму и мы свяжемся с вами для уточнения деталей
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="bg-secondary p-4 rounded-lg">
+              <h3 className="font-semibold mb-3">Ваш заказ:</h3>
+              <div className="space-y-2">
+                {cart.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span>{item.name} × {item.quantity} {item.unit}</span>
+                    <span className="font-semibold">{(item.price * item.quantity).toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                ))}
+                <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
+                  <span>Итого:</span>
+                  <span className="text-accent">{getTotalPrice().toLocaleString('ru-RU')} ₽</span>
+                </div>
+              </div>
+            </div>
+
+            <form className="space-y-4" onSubmit={async (e) => {
+              e.preventDefault();
+              setIsSubmitting(true);
+
+              try {
+                const response = await fetch('https://functions.poehali.dev/261c3112-c1a3-4cfb-b9dd-9149ff09369d', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    order: {
+                      items: cart,
+                      total: getTotalPrice(),
+                      customer: orderForm
+                    }
+                  })
+                });
+
+                if (!response.ok) throw new Error('Failed to send order');
+
+                setOrderSuccess(true);
+                setCheckoutOpen(false);
+                setCart([]);
+                setOrderForm({
+                  name: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  comment: ''
+                });
+
+                toast({
+                  title: "Заказ оформлен!",
+                  description: "Менеджер свяжется с вами в ближайшее время",
+                });
+
+              } catch (error) {
+                toast({
+                  title: "Ошибка",
+                  description: "Не удалось отправить заказ. Попробуйте позже.",
+                  variant: "destructive"
+                });
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="checkout-name">Имя *</Label>
+                  <Input
+                    id="checkout-name"
+                    required
+                    value={orderForm.name}
+                    onChange={(e) => setOrderForm({ ...orderForm, name: e.target.value })}
+                    placeholder="Иван Иванов"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="checkout-phone">Телефон *</Label>
+                  <Input
+                    id="checkout-phone"
+                    type="tel"
+                    required
+                    value={orderForm.phone}
+                    onChange={(e) => setOrderForm({ ...orderForm, phone: e.target.value })}
+                    placeholder="+7 (999) 123-45-67"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="checkout-email">Email *</Label>
+                <Input
+                  id="checkout-email"
+                  type="email"
+                  required
+                  value={orderForm.email}
+                  onChange={(e) => setOrderForm({ ...orderForm, email: e.target.value })}
+                  placeholder="example@mail.ru"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="checkout-address">Адрес доставки *</Label>
+                <Textarea
+                  id="checkout-address"
+                  required
+                  value={orderForm.address}
+                  onChange={(e) => setOrderForm({ ...orderForm, address: e.target.value })}
+                  placeholder="Укажите полный адрес доставки"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="checkout-comment">Комментарий</Label>
+                <Textarea
+                  id="checkout-comment"
+                  value={orderForm.comment}
+                  onChange={(e) => setOrderForm({ ...orderForm, comment: e.target.value })}
+                  placeholder="Дополнительная информация о заказе"
+                  rows={3}
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <Icon name="Info" size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-semibold mb-1">После оформления заказа:</p>
+                    <p>Менеджер по продажам свяжется с вами для уточнения деталей заказа и предоставления реквизитов для оплаты</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setCheckoutOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-accent hover:bg-accent/90"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
+                      Отправка...
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="CheckCircle" size={18} className="mr-2" />
+                      Оформить заказ
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={orderSuccess} onOpenChange={setOrderSuccess}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <Icon name="CheckCircle" size={32} className="text-green-600" />
+            </div>
+            <DialogTitle className="text-2xl text-center">Заказ успешно оформлен!</DialogTitle>
+            <DialogDescription className="text-center pt-4">
+              <p className="mb-3">Спасибо за ваш заказ! Номер заказа будет отправлен на указанный email.</p>
+              <p className="font-semibold text-foreground">Менеджер по продажам свяжется с вами в ближайшее время для уточнения деталей заказа и предоставления реквизитов для оплаты.</p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="pt-4">
+            <Button 
+              className="w-full bg-accent hover:bg-accent/90" 
+              onClick={() => setOrderSuccess(false)}
+            >
+              Отлично!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <footer className="bg-primary text-primary-foreground py-12">
         <div className="container mx-auto px-4">

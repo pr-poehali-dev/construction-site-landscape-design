@@ -1,0 +1,54 @@
+{
+  "tests": [
+    {
+      "name": "CORS preflight request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Send order with valid data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "order": {
+          "items": [
+            {
+              "id": 1,
+              "name": "Кирпич керамический",
+              "price": 18,
+              "quantity": 100,
+              "unit": "шт"
+            }
+          ],
+          "total": 1800,
+          "customer": {
+            "name": "Иван Иванов",
+            "phone": "+7 999 123-45-67",
+            "email": "test@example.com",
+            "address": "г. Москва, ул. Тестовая, д. 1",
+            "comment": "Доставка в выходные"
+          }
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "message": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Invalid method GET",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 405,
+      "expectedBody": {
+        "error": "Method not allowed"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
