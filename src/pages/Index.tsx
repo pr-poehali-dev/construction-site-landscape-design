@@ -5,17 +5,171 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Icon from '@/components/ui/icon';
+
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  unit: string;
+  image: string;
+  description: string;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+}
 
 const Index = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartOpen, setCartOpen] = useState(false);
   
   const [area, setArea] = useState([100]);
   const [buildingType, setBuildingType] = useState('house');
   const [foundation, setFoundation] = useState('slab');
   const [roofType, setRoofType] = useState('flat');
   const [landscaping, setLandscaping] = useState(false);
+
+  const products: Product[] = [
+    {
+      id: 1,
+      name: 'Кирпич керамический',
+      category: 'brick',
+      price: 18,
+      unit: 'шт',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/7cd71345-7c50-4b73-9561-2b37ed49ad8d.jpg',
+      description: 'Прочный керамический кирпич для строительства стен'
+    },
+    {
+      id: 2,
+      name: 'Цемент М500',
+      category: 'cement',
+      price: 450,
+      unit: 'мешок 50кг',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/20d757b8-0963-480e-b487-75fa480f13b4.jpg',
+      description: 'Портландцемент высшего качества для любых работ'
+    },
+    {
+      id: 3,
+      name: 'Утеплитель минеральный',
+      category: 'insulation',
+      price: 890,
+      unit: 'уп (5 м²)',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/c732dbbe-69b3-4b6c-ab68-584751cd08b9.jpg',
+      description: 'Минеральная вата для теплоизоляции стен и кровли'
+    },
+    {
+      id: 4,
+      name: 'Металлочерепица',
+      category: 'roofing',
+      price: 650,
+      unit: 'м²',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/260b2a9f-ffda-4bbc-9d6e-d3d9aebdf7a2.jpg',
+      description: 'Кровельное покрытие с полимерным слоем'
+    },
+    {
+      id: 5,
+      name: 'Газобетон D500',
+      category: 'brick',
+      price: 4200,
+      unit: 'м³',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/20d757b8-0963-480e-b487-75fa480f13b4.jpg',
+      description: 'Легкие блоки для быстрого строительства'
+    },
+    {
+      id: 6,
+      name: 'Песок строительный',
+      category: 'cement',
+      price: 1500,
+      unit: 'тонна',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/c732dbbe-69b3-4b6c-ab68-584751cd08b9.jpg',
+      description: 'Мытый песок для строительных растворов'
+    },
+    {
+      id: 7,
+      name: 'Пенопласт ПСБ-С-25',
+      category: 'insulation',
+      price: 320,
+      unit: 'лист',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/7cd71345-7c50-4b73-9561-2b37ed49ad8d.jpg',
+      description: 'Утеплитель для фасадов и фундаментов'
+    },
+    {
+      id: 8,
+      name: 'Профнастил С-8',
+      category: 'roofing',
+      price: 380,
+      unit: 'м²',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/260b2a9f-ffda-4bbc-9d6e-d3d9aebdf7a2.jpg',
+      description: 'Профилированный лист для кровли и заборов'
+    },
+    {
+      id: 9,
+      name: 'Гипсокартон 12.5мм',
+      category: 'other',
+      price: 420,
+      unit: 'лист',
+      image: 'https://cdn.poehali.dev/projects/990b5346-ebc5-4458-b4c3-63f267fb0b2b/files/20d757b8-0963-480e-b487-75fa480f13b4.jpg',
+      description: 'Стандартный ГКЛ для внутренних работ'
+    }
+  ];
+
+  const categories = [
+    { id: 'all', name: 'Все товары', icon: 'Package' },
+    { id: 'brick', name: 'Кирпич и блоки', icon: 'Box' },
+    { id: 'cement', name: 'Цемент и смеси', icon: 'Boxes' },
+    { id: 'insulation', name: 'Утеплители', icon: 'Shield' },
+    { id: 'roofing', name: 'Кровля', icon: 'Home' },
+    { id: 'other', name: 'Прочее', icon: 'MoreHorizontal' }
+  ];
+
+  const addToCart = (product: Product) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevCart.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: number) => {
+    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+  };
+
+  const updateQuantity = (productId: number, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item.id === productId ? { ...item, quantity } : item
+      )
+    );
+  };
+
+  const getTotalPrice = () => {
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  const getCartCount = () => {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const filteredProducts = selectedCategory === 'all' 
+    ? products 
+    : products.filter(p => p.category === selectedCategory);
 
   const calculateCost = () => {
     const basePrice = buildingType === 'house' ? 50000 : buildingType === 'cottage' ? 70000 : 40000;
@@ -46,15 +200,103 @@ const Index = () => {
             <button onClick={() => scrollToSection('home')} className="text-foreground hover:text-accent transition-colors">Главная</button>
             <button onClick={() => scrollToSection('about')} className="text-foreground hover:text-accent transition-colors">О компании</button>
             <button onClick={() => scrollToSection('services')} className="text-foreground hover:text-accent transition-colors">Услуги</button>
+            <button onClick={() => scrollToSection('materials')} className="text-foreground hover:text-accent transition-colors">Материалы</button>
             <button onClick={() => scrollToSection('portfolio')} className="text-foreground hover:text-accent transition-colors">Портфолио</button>
             <button onClick={() => scrollToSection('calculator')} className="text-foreground hover:text-accent transition-colors">Калькулятор</button>
             <button onClick={() => scrollToSection('reviews')} className="text-foreground hover:text-accent transition-colors">Отзывы</button>
             <button onClick={() => scrollToSection('contacts')} className="text-foreground hover:text-accent transition-colors">Контакты</button>
           </nav>
 
-          <Button onClick={() => scrollToSection('contacts')} className="hidden md:flex bg-accent hover:bg-accent/90">
-            Связаться с нами
-          </Button>
+          <div className="hidden md:flex items-center gap-4">
+            <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="relative">
+                  <Icon name="ShoppingCart" size={20} />
+                  {getCartCount() > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-accent text-white">
+                      {getCartCount()}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-lg">
+                <SheetHeader>
+                  <SheetTitle>Корзина</SheetTitle>
+                  <SheetDescription>
+                    {getCartCount() > 0 ? `Товаров в корзине: ${getCartCount()}` : 'Корзина пуста'}
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-8 space-y-4">
+                  {cart.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Icon name="ShoppingCart" size={48} className="mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">Добавьте товары в корзину</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+                        {cart.map(item => (
+                          <Card key={item.id}>
+                            <CardContent className="p-4">
+                              <div className="flex gap-4">
+                                <img src={item.image} alt={item.name} className="w-20 h-20 object-cover rounded" />
+                                <div className="flex-1">
+                                  <h4 className="font-semibold">{item.name}</h4>
+                                  <p className="text-sm text-muted-foreground">{item.price} ₽ / {item.unit}</p>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Button 
+                                      size="icon" 
+                                      variant="outline" 
+                                      className="h-8 w-8"
+                                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    >
+                                      <Icon name="Minus" size={14} />
+                                    </Button>
+                                    <span className="w-12 text-center">{item.quantity}</span>
+                                    <Button 
+                                      size="icon" 
+                                      variant="outline" 
+                                      className="h-8 w-8"
+                                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    >
+                                      <Icon name="Plus" size={14} />
+                                    </Button>
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-8 w-8 ml-auto"
+                                      onClick={() => removeFromCart(item.id)}
+                                    >
+                                      <Icon name="Trash2" size={14} />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-bold">{(item.price * item.quantity).toLocaleString('ru-RU')} ₽</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                      <div className="border-t pt-4 space-y-4">
+                        <div className="flex justify-between items-center text-lg font-bold">
+                          <span>Итого:</span>
+                          <span className="text-accent">{getTotalPrice().toLocaleString('ru-RU')} ₽</span>
+                        </div>
+                        <Button className="w-full bg-accent hover:bg-accent/90" size="lg" onClick={() => { setCartOpen(false); scrollToSection('contacts'); }}>
+                          Оформить заказ
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Button onClick={() => scrollToSection('contacts')} className="bg-accent hover:bg-accent/90">
+              Связаться
+            </Button>
+          </div>
 
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden">
             <Icon name={menuOpen ? "X" : "Menu"} size={24} />
@@ -67,10 +309,17 @@ const Index = () => {
               <button onClick={() => scrollToSection('home')} className="text-left text-foreground hover:text-accent transition-colors">Главная</button>
               <button onClick={() => scrollToSection('about')} className="text-left text-foreground hover:text-accent transition-colors">О компании</button>
               <button onClick={() => scrollToSection('services')} className="text-left text-foreground hover:text-accent transition-colors">Услуги</button>
+              <button onClick={() => scrollToSection('materials')} className="text-left text-foreground hover:text-accent transition-colors">Материалы</button>
               <button onClick={() => scrollToSection('portfolio')} className="text-left text-foreground hover:text-accent transition-colors">Портфолио</button>
               <button onClick={() => scrollToSection('calculator')} className="text-left text-foreground hover:text-accent transition-colors">Калькулятор</button>
               <button onClick={() => scrollToSection('reviews')} className="text-left text-foreground hover:text-accent transition-colors">Отзывы</button>
               <button onClick={() => scrollToSection('contacts')} className="text-left text-foreground hover:text-accent transition-colors">Контакты</button>
+              <Button onClick={() => setCartOpen(true)} variant="outline" className="flex items-center justify-between">
+                <span>Корзина</span>
+                {getCartCount() > 0 && (
+                  <Badge className="ml-2 bg-accent text-white">{getCartCount()}</Badge>
+                )}
+              </Button>
               <Button onClick={() => scrollToSection('contacts')} className="bg-accent hover:bg-accent/90">
                 Связаться с нами
               </Button>
@@ -363,6 +612,72 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+
+      <section id="materials" className="py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-bold text-primary mb-4">Строительные материалы</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Качественные материалы по выгодным ценам с доставкой
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 justify-center mb-8">
+            {categories.map(cat => (
+              <Button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                className={selectedCategory === cat.id ? 'bg-accent hover:bg-accent/90' : ''}
+              >
+                <Icon name={cat.icon as any} size={18} className="mr-2" />
+                {cat.name}
+              </Button>
+            ))}
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map(product => (
+              <Card key={product.id} className="overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
+                <img 
+                  src={product.image} 
+                  alt={product.name} 
+                  className="w-full h-48 object-cover"
+                />
+                <CardHeader>
+                  <CardTitle className="text-xl">{product.name}</CardTitle>
+                  <CardDescription>{product.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-end justify-between mb-4">
+                    <div>
+                      <div className="text-3xl font-bold text-accent">{product.price.toLocaleString('ru-RU')} ₽</div>
+                      <div className="text-sm text-muted-foreground">за {product.unit}</div>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full bg-accent hover:bg-accent/90"
+                    onClick={() => {
+                      addToCart(product);
+                      setCartOpen(true);
+                    }}
+                  >
+                    <Icon name="ShoppingCart" size={18} className="mr-2" />
+                    В корзину
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-12">
+              <Icon name="Package" size={48} className="mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Товары не найдены</p>
+            </div>
+          )}
         </div>
       </section>
 
